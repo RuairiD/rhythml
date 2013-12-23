@@ -1,0 +1,1 @@
+for /f "delims=" %%x in ('grun RhythML p -tree %3 ^| findstr /b (p') do java -jar RhythMLClojure.jar %1 %2 "%%x" %4
