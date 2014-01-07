@@ -17,7 +17,7 @@ public class Bar
 		Set<Node> children = node.getChildren();
 		for (Node child : children)
 		{
-			if(child.getId().equals("beats"))
+			if(child.getId().equals(":beats"))
 			{
 				beats = new Beats(child);
 			}

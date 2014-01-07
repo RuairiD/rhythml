@@ -22,11 +22,11 @@ public class Rhythm {
 		Set<Node> children = node.getChildren();
 		for (Node child : children)
 		{
-			if(child.getId().equals("inst"))
+			if(child.getId().equals(":inst"))
 			{
 				instrument = new Instrument(child);
 			}
-			else if(child.getId().equals("rhy"))
+			else if(child.getId().equals(":rhy"))
 			{
 				rhythm = new Rhythm(child);
 			}

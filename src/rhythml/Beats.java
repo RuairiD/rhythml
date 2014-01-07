@@ -19,7 +19,7 @@ public class Beats
 		Set<Node> children = node.getChildren();
 		for (Node child : children)
 		{
-			if(child.getId().equals("beats"))
+			if(child.getId().equals(":beats"))
 			{
 				rest = new Beats(child);
 			}

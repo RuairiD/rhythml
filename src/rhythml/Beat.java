@@ -15,7 +15,10 @@ public class Beat
 	
 	public Beat(Node node)
 	{
-		token = node.getId();
+		for (Node child : node.getChildren())
+		{
+			token = child.getId();
+		}
 	}
 	
 	public String getToken()

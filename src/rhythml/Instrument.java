@@ -19,7 +19,7 @@ public class Instrument
 		Set<Node> children = node.getChildren();
 		for (Node child : children)
 		{
-			if(child.getId().equals("bar"))
+			if(child.getId().equals(":bar"))
 			{
 				bar = new Bar(child);
 			}

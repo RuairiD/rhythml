@@ -1,12 +1,33 @@
 (ns rhythml.core
+  (:require [instaparse.core :as insta])
+  (:import [rhythml MapGenerator])
   (:use [overtone.live]
-		 [overtone.inst.drum]))
+		[overtone.inst.drum]))
+		
+(defn vector-to-array-list [xs]
+	(let [result (java.util.ArrayList.) len (count xs)]
+		(loop [i 0] (when (< i len)
+			(let [x (get xs i)]
+				(if (vector? x) (.add result (vector-to-array-list x)) (.add result x)))
+			(recur (inc i)))) 
+		result))
+		
+(def grammar "
+	p : rhy ;
+	rhy : inst <WS> rhy | inst;
+	inst : Id <WS> ':' <WS> bar;
+	Id : 'B' | 'SN' | 'HT' | 'LT' | 'FT' | 'HH' | 'Rd' | 'CC' ;
+	bar : '|' beats '|' ;
+	beats : Beat beats | Beat ;
+	Beat : 'x' | 'X' | 'o' | 'O' | '-' ;
+	WS : #'\\s*' ;")	
+
+(def parse-rhythm
+  (insta/parser grammar))
   
 (defn bd [] (kick))
 (defn ch [] (closed-hat))
 (defn sn [] (snare 405 1 0.1 0.1 0.25 40 1000))
-
-(def drumPool (overtone.at-at/mk-pool))
 
 (def rhy {
 	:interval 200,
@@ -40,23 +61,38 @@
 		{:count 7, :instruments [ch]}
 		{:count 8, :instruments [ch]}]})
 
-(def rhyRef (ref rhy))
-	
-(defn updateRhythm [r]
-	(dosync (ref-set rhyRef r)))
+(defn to-clojure-map [m] {
+	:interval (get m "interval")
+	:length (get m "length")
+	:beats (into [] (map 
+		(fn [beat] {
+			:count (get beat "count") 
+			:instruments (into [] (map 
+				(fn [ins] (resolve (symbol ins))) 
+				(into [] (get beat "instruments"))))})
+		(into [] (get m "beats"))))})
 
-(defn playBeat [beat]
+(defn make-rhythm [bpm rml] (to-clojure-map (MapGenerator/getMap bpm (vector-to-array-list (parse-rhythm rml)))))
+
+(def rhy-ref (ref rhy))
+	
+(defn update-rhythm [r]
+	(dosync (ref-set rhy-ref r)))
+	
+(defn add-rhythm [bpm rml] (update-rhythm (make-rhythm bpm rml)))
+
+(defn play-beat [beat]
 	(dorun (for [ins beat]
 		(ins))))
 
-(defn playRhythm [rRef]
+(defn play-rhythm [rRef]
 	(let [time (now), r (deref rRef), beats (get r :beats), interval (get r :interval), length (get r :length)]
 		(do 
 			(dorun (for [beat beats]
-				(apply-at (+ (* interval (get beat :count)) time) playBeat [(get beat :instruments)])))
-			(apply-at (+ (* length interval) time) playRhythm [rRef]))))
+				(apply-at (+ (* interval (get beat :count)) time) play-beat [(into [] (get beat :instruments))])))
+			(apply-at (+ (* length interval) time) play-rhythm [rRef]))))
 
-(defn startRhythm [r] 
+(defn start-rhythm [r] 
 	(do
-		(updateRhythm r)
-		(playRhythm rhyRef)))
+		(update-rhythm r)
+		(play-rhythm rhy-ref)))
