@@ -86,7 +86,12 @@
 		(ins))))
 
 (defn play-rhythm [rRef]
-	(let [time (now), r (deref rRef), beats (get r :beats), interval (get r :interval), length (get r :length)]
+	(let [
+		time (now)
+		r @rRef
+		beats (get r :beats)
+		interval (get r :interval)
+		length (get r :length)]
 		(do 
 			(dorun (for [beat beats]
 				(apply-at (+ (* interval (get beat :count)) time) play-beat [(into [] (get beat :instruments))])))
