@@ -4,7 +4,9 @@
   (:use [overtone.live]
 		[overtone.inst.drum]))
 		
-(defn vector-to-array-list [xs]
+(defn vector-to-array-list 
+	"Converts a Clojure vector to a Java ArrayList. If the vector contains vectors as elements, those vectors will be recursively converted to Java ArrayLists."
+	[xs]
 	(let [result (java.util.ArrayList.) len (count xs)]
 		(loop [i 0] (when (< i len)
 			(let [x (get xs i)]
@@ -61,43 +63,88 @@
 		{:count 7, :instruments [ch]}
 		{:count 8, :instruments [ch]}]})
 
-(defn to-clojure-map [m] {
-	:interval (get m "interval")
-	:length (get m "length")
-	:beats (into [] (map 
-		(fn [beat] {
-			:count (get beat "count") 
-			:instruments (into [] (map 
-				(fn [ins] (resolve (symbol ins))) 
-				(into [] (get beat "instruments"))))})
-		(into [] (get m "beats"))))})
-
-(defn make-rhythm [bpm rml] (to-clojure-map (MapGenerator/getMap bpm (vector-to-array-list (parse-rhythm rml)))))
-
-(def rhy-ref (ref rhy))
+(defn to-clojure-map 
+	"Convert Java HashMap to native Clojure map. Both maps must match the specification for a rhythm map."
+	[hash-map] {
+		:interval (get hash-map "interval")
+		:length (get hash-map "length")
+		:beats (into [] (map 
+			(fn [beat] {
+				:count (get beat "count") 
+				:instruments (into [] (map 
+					(fn [ins] (resolve (symbol ins))) 
+					(into [] (get beat "instruments"))))})
+			(into [] (get hash-map "beats"))))})
+		
+(defn concat-rhythm
+	"Concatenates two or more rhythm maps and returns the resulting map. Rhythms are concatenated in order from left to right. In the case that the rhythms have different invervals, the interval of the result will match that of the first argument."
+	([map1 map2] {
+		:interval (get map1 :interval)
+		:length (+ (get map1 :length) (get map2 :length))
+		:beats (into [] 
+			(concat 
+				(get map1 :beats) 
+				(map 
+					(fn [beat] {
+						:count (+ (get beat :count) (get map1 :length)) 
+						:instruments (get beat :instruments)}) 
+					(get map2 :beats))))})
+	([map1 map2 & maps] (apply concat-rhythm (into [] (concat [(concat-rhythm map1 map2)] maps)))))
 	
-(defn update-rhythm [r]
+(defn merge-rhythm
+	"Merges two or more rhythm maps and returns the resulting map. In the case that the rhythms have different lengths, the length of the result will match that of the longest rhythm."
+	([map1 map2] {
+		:interval (get map1 :interval)
+		:length (max (get map1 :length) (get map2 :length))
+		:beats (into [] 
+			(map
+				(fn [beat1 beat2] {
+					:count (get beat1 :count)
+					:instruments (into [] (concat (get beat1 :instruments) (get beat2 :instruments)))})
+				(get map1 :beats) (get map2 :beats)))})
+	([map1 map2 & maps] 
+		(apply merge-rhythm 
+			(into [] 
+				(concat [(merge-rhythm map1 map2)] maps)))))				
+
+(defn make-rhythm 
+	"Compiles a string of RhythML code and the tempo of the rhythm and returns a map representing the rhythm. The rhythm is not played by this function but can be played back using update-rhythm."
+	[bpm rml] 
+	(to-clojure-map (MapGenerator/getMap bpm (vector-to-array-list (parse-rhythm rml)))))
+
+(def rhy-ref (ref {}))
+	
+(defn update-rhythm 
+	"Updates the rhythm currently being played to a map representation of a rhythm passed as an argument."
+	[r]
 	(dosync (ref-set rhy-ref r)))
 	
-(defn add-rhythm [bpm rml] (update-rhythm (make-rhythm bpm rml)))
+(defn add-rhythm 
+	"Compiles a string of RhythML code and the tempo of the rhythm and plays the rhythm immediately."
+	[bpm rml] 
+	(update-rhythm (make-rhythm bpm rml)))
 
-(defn play-beat [beat]
+(defn play-beat 
+	"Plays a vector of instruments immediately and simultaneously."
+	[beat]
 	(dorun (for [ins beat]
 		(ins))))
 
 (defn play-rhythm [rRef]
-	(let [
-		time (now)
-		r @rRef
-		beats (get r :beats)
-		interval (get r :interval)
-		length (get r :length)]
+	(let [time (now), r (deref rRef), beats (get r :beats), interval (get r :interval), length (get r :length)]
 		(do 
 			(dorun (for [beat beats]
 				(apply-at (+ (* interval (get beat :count)) time) play-beat [(into [] (get beat :instruments))])))
 			(apply-at (+ (* length interval) time) play-rhythm [rRef]))))
 
-(defn start-rhythm [r] 
+(defn start-rhythm 
+	"Starts a rhythm session by setting the global rhythm ref and calling play-rhythm to start the rhythm loop."
+	[] 
 	(do
-		(update-rhythm r)
-		(play-rhythm rhy-ref)))
+		(update-rhythm {
+			:interval 10,
+			:length 1,
+			:beats [
+				{:count 0, :instruments []}]})
+		(play-rhythm rhy-ref)
+		(println "Rhythm session started.")))
