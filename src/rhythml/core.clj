@@ -16,7 +16,7 @@
 		
 (def grammar "
 	p : rhy ;
-	rhy : inst <WS> rhy | inst;
+	rhy : <WS> inst <WS> rhy <WS> | inst;
 	inst : Id <WS> ':' <WS> bar;
 	Id : 'B' | 'SN' | 'HT' | 'LT' | 'FT' | 'HH' | 'Rd' | 'CC' ;
 	bar : '|' beats '|' ;
