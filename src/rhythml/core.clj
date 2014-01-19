@@ -76,6 +76,21 @@
 					(fn [ins] (resolve (symbol ins))) 
 					(into [] (get beat "instruments"))))})
 			(into [] (get hash-map "beats"))))})
+
+(defn make-rhythm 
+	"Compiles a string of RhythML code and the tempo of the rhythm and returns a map representing the rhythm. The rhythm is not played by this function but can be played back using update-rhythm."
+	[bpm rml] 
+	(to-clojure-map (MapGenerator/getMap bpm (vector-to-array-list (parse-rhythm rml)))))
+	
+(defn update-rhythm 
+	"Updates the rhythm currently being played to a map representation of a rhythm passed as an argument."
+	[r]
+	(dosync (ref-set rhy-ref r)))
+	
+(defn add-rhythm 
+	"Compiles a string of RhythML code and the tempo of the rhythm and plays the rhythm immediately."
+	[bpm rml] 
+	(update-rhythm (make-rhythm bpm rml)))
 		
 (defn concat-rhythm
 	"Concatenates two or more rhythm maps and returns the resulting map. Rhythms are concatenated in order from left to right. In the case that the rhythms have different invervals, the interval of the result will match that of the first argument."
@@ -106,24 +121,37 @@
 	([map1 map2 & maps] 
 		(apply merge-rhythm 
 			(into [] 
-				(concat [(merge-rhythm map1 map2)] maps)))))				
-
-(defn make-rhythm 
-	"Compiles a string of RhythML code and the tempo of the rhythm and returns a map representing the rhythm. The rhythm is not played by this function but can be played back using update-rhythm."
-	[bpm rml] 
-	(to-clojure-map (MapGenerator/getMap bpm (vector-to-array-list (parse-rhythm rml)))))
-
-(def rhy-ref (ref {}))
+				(concat [(merge-rhythm map1 map2)] maps)))))
 	
-(defn update-rhythm 
-	"Updates the rhythm currently being played to a map representation of a rhythm passed as an argument."
-	[r]
-	(dosync (ref-set rhy-ref r)))
+(defn get-instruments
+	"Get the set of instruments used in a rhythm."
+	[map1]
+	(set (apply concat
+		(map
+			(fn [beat] (get beat :instruments))
+			(get map1 :beats)))))
 	
-(defn add-rhythm 
-	"Compiles a string of RhythML code and the tempo of the rhythm and plays the rhythm immediately."
-	[bpm rml] 
-	(update-rhythm (make-rhythm bpm rml)))
+(defn remove-insts
+	"Removes all instances of instruments from a rhythm map and returns the map."
+	[map1 ins-vector] {
+		:interval (get map1 :interval)
+		:length (get map1 :length)
+		:beats (into [] 
+			(map
+				(fn [beat] {
+					:count (get beat :count)
+					:instruments (into [] (filter (fn [x] (not (contains? ins-vector x))) (get beat :instruments)))})
+				(get map1 :beats)))})
+				
+(defn edit-rhythm
+	"Replaces drum patterns in an existing rhythm with updated patterns represented by RhythML."
+	[map1 rml] 
+	(merge-rhythm (remove-insts map1 (get-instruments (make-rhythm 1000 rml))) (make-rhythm 1000 rml)))
+	
+(defn edit-live-rhythm
+	"Replaces drum patterns in the currently playing rhythm with updated patterns represented by RhythML."
+	[rml]
+	(update-rhythm (merge-rhythm (remove-insts @rhy-ref (get-instruments (make-rhythm 1000 rml))) (make-rhythm 1000 rml))))
 
 (defn play-beat 
 	"Plays a vector of instruments immediately and simultaneously."
