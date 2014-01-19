@@ -1,8 +1,7 @@
 (ns rhythml.core
   (:require [instaparse.core :as insta])
   (:import [rhythml MapGenerator])
-  (:use [overtone.live]
-		[overtone.inst.drum]))
+  (:use [overtone.live] [overtone.inst.drum]))
 		
 (defn vector-to-array-list 
 	"Converts a Clojure vector to a Java ArrayList. If the vector contains vectors as elements, those vectors will be recursively converted to Java ArrayLists."
@@ -30,6 +29,8 @@
 (defn bd [] (kick))
 (defn ch [] (closed-hat))
 (defn sn [] (snare 405 1 0.1 0.1 0.25 40 1000))
+	
+(def rhy-ref (ref {}))
 
 (def rhy {
 	:interval 200,
@@ -130,12 +131,14 @@
 	(dorun (for [ins beat]
 		(ins))))
 
-(defn play-rhythm [rRef]
-	(let [time (now), r (deref rRef), beats (get r :beats), interval (get r :interval), length (get r :length)]
+(defn play-rhythm 
+	"Plays the rhythm stored in r-ref in a continuous loop. If the rhythm stored in r-ref changes, the new rhythm will be played at the start of the next loop."
+	[r-ref]
+	(let [time (now), r (deref r-ref), beats (get r :beats), interval (get r :interval), length (get r :length)]
 		(do 
 			(dorun (for [beat beats]
 				(apply-at (+ (* interval (get beat :count)) time) play-beat [(into [] (get beat :instruments))])))
-			(apply-at (+ (* length interval) time) play-rhythm [rRef]))))
+			(apply-at (+ (* length interval) time) play-rhythm [r-ref]))))
 
 (defn start-rhythm 
 	"Starts a rhythm session by setting the global rhythm ref and calling play-rhythm to start the rhythm loop."
