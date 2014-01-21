@@ -83,4 +83,27 @@ Three functions are used to create rhythms, although they do not all need to be 
 * `(make-rhythm bpm rml)`, where `bpm` is an integer representing the number of beats per minute the rhythm should be played at and `rml` is a string of RhythML code, compiles the rhythm and returns it as a Clojure map, but does not play it back.
 * `(update-rhythm map)`, where `map` is Clojure map returned by `(make-rhythm)`, plays back the rhythm represented by `map`.
 
+Rhythms can also be concatenated/appended and merged using:
+
+* `(concat-rhythm a b c...)`, where all arguments (which can be of any number) are valid rhythm maps, returns a rhythm equivalent to the arguments appended together. For example: the result of `(concat-rhythm (make-rhythm 200 "B:|o-") (make-rhythm 200 "SN:|o-|"))` is the same as `(make-rhythm 200 "B:|o---| SN:|---o|")`.
+* `(merge-rhythm a b c...)`, where all arguments (which can be of any number) are valid rhythm maps, returns a rhythm equivalent to the arguments merged together and of the smallest length of all arguments. For example: the result of `(merge-rhythm (make-rhythm 200 "B:|o-") (make-rhythm 200 "SN:|-o|"))` is the same as `(make-rhythm 200 "B:|o-| SN:|-o|")`.
+
+Editing Rhythms
+---------------
+
+Rhythms can be edited after creation by replacing instrument lines individually using `(edit-rhythm)`. For example, the following function returns a rhythm map of two instruments (kick and snare):
+
+`(def foo (make-rhythm 200 "B:|o---| SN:|--o-|"))`
+
+Instrument lines can be changed individually by providing new RhythML code for that instrument:
+
+`(edit-rhythm foo "B:|o-o-|")`
+
+This returns a new map containing the same information as `foo` but with an amended bass drum. 
+
+To update a rhythm already playing, `(edit-live-rhythm)` can be used  without passing a map as an argument. For example:
+
+`(edit-live-rhythm "B:|o-o-|")`
+
+
   [1]: https://github.com/technomancy/leiningen        "Leiningen"
