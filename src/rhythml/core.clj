@@ -111,7 +111,7 @@
 	"Merges two or more rhythm maps and returns the resulting map. In the case that the rhythms have different lengths, the length of the result will match that of the longest rhythm."
 	([map1 map2] {
 		:interval (get map1 :interval)
-		:length (max (get map1 :length) (get map2 :length))
+		:length (min (get map1 :length) (get map2 :length))
 		:beats (into [] 
 			(map
 				(fn [beat1 beat2] {
