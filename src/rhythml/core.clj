@@ -108,7 +108,7 @@
 	([map1 map2 & maps] (apply concat-rhythm (into [] (concat [(concat-rhythm map1 map2)] maps)))))
 	
 (defn merge-rhythm
-	"Merges two or more rhythm maps and returns the resulting map. In the case that the rhythms have different lengths, the length of the result will match that of the longest rhythm."
+	"Merges two or more rhythm maps and returns the resulting map. In the case that the rhythms have different lengths, the length of the result will match that of the shortest rhythm."
 	([map1 map2] {
 		:interval (get map1 :interval)
 		:length (min (get map1 :length) (get map2 :length))
