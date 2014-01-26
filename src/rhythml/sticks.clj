@@ -1,6 +1,6 @@
 (ns rhythml.sticks
   (:require [instaparse.core :as insta])
-  (:use [rhythml.core]))
+  (:use [rhythml.skins]))
 		
 (def text-grammar "
 	p : expr-list ;
