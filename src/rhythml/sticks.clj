@@ -32,49 +32,49 @@
 	"Merges a vector of rhythm maps together, returning the resulting map."
 	[rhy-vect] (if (empty? (rest rhy-vect)) (first rhy-vect) (merge-rhythm (first rhy-vect) (merge-rhythm-vector (rest rhy-vect)))))
 	
-(defmulti read-parse-tree 
+(defmulti read-sticks-parse-tree 
 	"Read the parse tree returned by Instaparse to create a map of ids and rhythms represented by the input string. Rhythms are merged, concatenated and played as appropriate."
-	(fn [parse-tree map] (first parse-tree)))
+	(fn [parse-tree output-output-map] (first parse-tree)))
 
-(defmethod read-parse-tree :p [[_ expr-list] map] (read-parse-tree expr-list map))
+(defmethod read-sticks-parse-tree :p [[_ expr-list] output-map] (read-sticks-parse-tree expr-list output-map))
 
-(defmethod read-parse-tree :expr-list 
-	[[_  expr expr-list] map] (if (= expr-list nil) (read-parse-tree expr map) (read-parse-tree expr-list (read-parse-tree expr map)) ))
+(defmethod read-sticks-parse-tree :expr-list 
+	[[_  expr expr-list] output-map] (if (= expr-list nil) (read-sticks-parse-tree expr output-map) (read-sticks-parse-tree expr-list (read-sticks-parse-tree expr output-map)) ))
 
-(defmethod read-parse-tree :expr 
-	[[_ expr] map] (read-parse-tree expr map))
+(defmethod read-sticks-parse-tree :expr 
+	[[_ expr] output-map] (read-sticks-parse-tree expr output-map))
 
-(defmethod read-parse-tree :assign-expr 
-	[[_ id rhy-expr] map] (assoc map (read-parse-tree id map) (read-parse-tree rhy-expr map)))
+(defmethod read-sticks-parse-tree :assign-expr 
+	[[_ id rhy-expr] output-map] (assoc output-map (read-sticks-parse-tree id output-map) (read-sticks-parse-tree rhy-expr output-map)))
 
-(defmethod read-parse-tree :rhy-expr 
-	[[_ expr] map] (read-parse-tree expr map))
+(defmethod read-sticks-parse-tree :rhy-expr 
+	[[_ expr] output-map] (read-sticks-parse-tree expr output-map))
 
-(defmethod read-parse-tree :concat-expr 
-	[[_ id-list] map] (concat-rhythm-vector (read-parse-tree id-list map)))
+(defmethod read-sticks-parse-tree :concat-expr 
+	[[_ id-list] output-map] (concat-rhythm-vector (read-sticks-parse-tree id-list output-map)))
 
-(defmethod read-parse-tree :merge-expr 
-	[[_ id-list] map] (merge-rhythm-vector (read-parse-tree id-list map)))
+(defmethod read-sticks-parse-tree :merge-expr 
+	[[_ id-list] output-map] (merge-rhythm-vector (read-sticks-parse-tree id-list output-map)))
 
-(defmethod read-parse-tree :make-expr 
-	[[_ rhy] map] (read-parse-tree rhy map))
+(defmethod read-sticks-parse-tree :make-expr 
+	[[_ rhy] output-map] (read-sticks-parse-tree rhy output-map))
 
-(defmethod read-parse-tree :rhy 
-	[[_ rml] map] (make-rhythm 200 rml))
+(defmethod read-sticks-parse-tree :rhy 
+	[[_ rml] output-map] (make-rhythm 200 rml))
 
-(defmethod read-parse-tree :play-expr
-	[[_ id] map] (update-rhythm (map (read-parse-tree id map)) ))
+(defmethod read-sticks-parse-tree :play-expr
+	[[_ id] output-map] (update-rhythm (output-map (read-sticks-parse-tree id output-map)) ))
 
-(defmethod read-parse-tree :id-list 
-	[[_  id id-list] map] (into [] (if (= id-list nil) [(map (read-parse-tree id map))] (concat [(map (read-parse-tree id map))] (read-parse-tree id-list map)))))
+(defmethod read-sticks-parse-tree :id-list 
+	[[_  id id-list] output-map] (into [] (if (= id-list nil) [(output-map (read-sticks-parse-tree id output-map))] (concat [(map (read-sticks-parse-tree id output-map))] (read-sticks-parse-tree id-list output-map)))))
 
-(defmethod read-parse-tree :id 
-	[[_ id] map] id)
+(defmethod read-sticks-parse-tree :id 
+	[[_ id] output-map] id)
 
-(defmethod read-parse-tree :default 
-	[[_ & rest] map] (map (fn [x] (read-parse-tree x map)) (into [] rest)))
+(defmethod read-sticks-parse-tree :default 
+	[[_ & rest] output-map] (map (fn [x] (read-sticks-parse-tree x output-map)) (into [] rest)))
 	
-(defn read-text [s] (read-parse-tree (parse-text s) {}))
+(defn read-sticks [s] (read-sticks-parse-tree (parse-text s) {}))
 
 (def assign-ex (parse-text "foo $ B:|o|"))
 
