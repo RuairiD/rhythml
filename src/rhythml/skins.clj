@@ -16,11 +16,11 @@
 (def grammar "
 	p : rhy ;
 	rhy : <WS> inst <WS> rhy <WS> | inst;
-	inst : Id <WS> ':' <WS> bar;
-	Id : 'B' | 'SN' | 'HT' | 'LT' | 'FT' | 'HH' | 'Rd' | 'CC' ;
-	bar : '|' beats '|' ;
-	beats : Beat beats | Beat ;
-	Beat : 'x' | 'X' | 'o' | 'O' | '-' ;
+	inst : id <WS> <':'> <WS> bar;
+	id : #'[a-zA-Z]+'
+	bar : <'|'> beats <'|'> ;
+	beats : beat beats | beat ;
+	beat : 'x' | 'X' | 'o' | 'O' | '-' ;
 	WS : #'\\s*' ;")	
 
 (def parse-rhythm
@@ -29,6 +29,62 @@
 (defn bd [] (kick))
 (defn ch [] (closed-hat))
 (defn sn [] (snare 405 1 0.1 0.1 0.25 40 1000))
+
+(defn merge-beats
+	([a] a)
+	([a & rest] 
+		(into [] 
+			(map 
+				(fn [x y] {:count (x :count) :instruments (into [] (concat (x :instruments) (y :instruments)))}) 
+				a (apply merge-beats rest)))))
+	
+(defmulti read-rhythml-beats 
+	(fn [parse-tree n inst-id sounds] (first parse-tree)))
+		
+(defmethod read-rhythml-beats :bar
+	[[_ beats] n inst-id sounds] 
+	(read-rhythml-beats beats n inst-id sounds))
+	
+(defmethod read-rhythml-beats :beats
+	[[_ beat beats] n inst-id sounds] 
+	(if (= beats nil) 
+		[(read-rhythml-beats beat n inst-id sounds)] 
+		(into [] 
+			(concat 
+				[(read-rhythml-beats beat n inst-id sounds)] 
+				(read-rhythml-beats beats (+ n 1) inst-id sounds)))))
+		
+(defmethod read-rhythml-beats :beat
+	[[_ beat] n inst-id sounds] 
+	(if (= beat "-")
+		{:count n, :instruments []}
+		{:count n, :instruments [(sounds inst-id)]}
+		))
+	
+(defmulti read-rhythml-parse-tree 
+	(fn [parse-tree sounds output-map] (first parse-tree)))
+
+(defmethod read-rhythml-parse-tree :p 
+	[[_ rhy] sounds output-map] (read-rhythml-parse-tree rhy sounds output-map))
+
+(defmethod read-rhythml-parse-tree :rhy 
+	[[_  inst rhy] sounds output-map] 
+		(if 
+			(= rhy nil) 
+			(read-rhythml-parse-tree inst sounds output-map) 
+			(apply merge-beats 
+				(into [] 
+					(concat 
+						[(read-rhythml-parse-tree inst sounds output-map)]
+						[(read-rhythml-parse-tree rhy sounds output-map)]  )))))
+
+(defmethod read-rhythml-parse-tree :inst 
+	[[_  id bar] sounds output-map]
+	(read-rhythml-beats bar 0 (read-rhythml-parse-tree id sounds output-map) sounds))
+
+(defmethod read-rhythml-parse-tree :id
+	[[_  id] sounds output-map]
+	id)
 	
 (def rhy-ref (ref {}))
 
@@ -77,10 +133,23 @@
 					(into [] (get beat "instruments"))))})
 			(into [] (get hash-map "beats"))))})
 
-(defn make-rhythm 
+(defn make-rhythm-old
 	"Compiles a string of RhythML code and the tempo of the rhythm and returns a map representing the rhythm. The rhythm is not played by this function but can be played back using update-rhythm."
 	[bpm rml] 
 	(to-clojure-map (MapGenerator/getMap bpm (vector-to-array-list (parse-rhythm rml)))))
+	
+(defn make-rhythm
+	"Compiles a string of RhythML code and the tempo of the rhythm and returns a map representing the rhythm. The rhythm is not played by this function but can be played back using update-rhythm."
+	[bpm sounds rml] 
+	(let [beats 
+		(read-rhythml-parse-tree 
+			(parse-rhythm rml)
+			(merge {"B" bd, "SN" sn, "HH" ch} sounds)
+			{})]
+		{
+			:interval (/ 60000 bpm)
+			:length (count beats)
+			:beats beats}))
 	
 (defn update-rhythm 
 	"Updates the rhythm currently being played to a map representation of a rhythm passed as an argument."
