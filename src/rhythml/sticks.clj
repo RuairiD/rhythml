@@ -66,7 +66,7 @@
 	[[_ id] output-map] (update-rhythm (output-map (read-sticks-parse-tree id output-map)) ))
 
 (defmethod read-sticks-parse-tree :id-list 
-	[[_  id id-list] output-map] (into [] (if (= id-list nil) [(output-map (read-sticks-parse-tree id output-map))] (concat [(map (read-sticks-parse-tree id output-map))] (read-sticks-parse-tree id-list output-map)))))
+	[[_  id id-list] output-map] (into [] (if (= id-list nil) [(output-map (read-sticks-parse-tree id output-map))] (concat [(output-map (read-sticks-parse-tree id output-map))] (read-sticks-parse-tree id-list output-map)))))
 
 (defmethod read-sticks-parse-tree :id 
 	[[_ id] output-map] id)
