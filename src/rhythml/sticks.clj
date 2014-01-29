@@ -34,7 +34,7 @@
 	
 (defmulti read-sticks-parse-tree 
 	"Read the parse tree returned by Instaparse to create a map of ids and rhythms represented by the input string. Rhythms are merged, concatenated and played as appropriate."
-	(fn [parse-tree output-output-map] (first parse-tree)))
+	(fn [parse-tree output-map] (first parse-tree)))
 
 (defmethod read-sticks-parse-tree :p [[_ expr-list] output-map] (read-sticks-parse-tree expr-list output-map))
 
