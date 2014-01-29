@@ -1,13 +1,16 @@
 (ns rhythml.sticks
   (:require [instaparse.core :as insta])
-  (:use [rhythml.skins]))
+  (:use [rhythml.skins] [overtone.live]))
 		
 (def text-grammar "
 	p : expr-list ;
 	
 	expr-list : <WS> expr <WS> expr-list <WS> | <WS> expr <WS>;
-	expr : assign-expr | play-expr;
+	expr : bpm-expr | sound-expr | assign-expr | play-expr;
 	
+	bpm-expr : <'bpm'> <WS> #'[0-9]+';
+	sound-expr : id <WS> <'#'> <WS> fs-id;
+	fs-id : #'[0-9]+';
 	assign-expr : id <WS> rhy-expr;
 	rhy-expr : make-expr | concat-expr | merge-expr;
 	concat-expr : <'.'> <WS> id-list;
@@ -44,6 +47,19 @@
 (defmethod read-sticks-parse-tree :expr 
 	[[_ expr] output-map] (read-sticks-parse-tree expr output-map))
 
+(defmethod read-sticks-parse-tree :bpm-expr 
+	[[_ bpm] output-map] (assoc output-map "bpm" (read-string bpm)))
+
+(defmethod read-sticks-parse-tree :sound-expr 
+	[[_ id fs-id] output-map] 
+		(assoc output-map :sounds 
+			(assoc (output-map :sounds) 
+				(read-sticks-parse-tree id output-map)
+				(read-sticks-parse-tree fs-id output-map))))
+
+(defmethod read-sticks-parse-tree :fs-id 
+	[[_ fs-id] output-map] (let [f (freesound fs-id)] f))
+
 (defmethod read-sticks-parse-tree :assign-expr 
 	[[_ id rhy-expr] output-map] (assoc output-map (read-sticks-parse-tree id output-map) (read-sticks-parse-tree rhy-expr output-map)))
 
@@ -60,7 +76,7 @@
 	[[_ rhy] output-map] (read-sticks-parse-tree rhy output-map))
 
 (defmethod read-sticks-parse-tree :rhy 
-	[[_ rml] output-map] (make-rhythm 200 rml))
+	[[_ rml] output-map] (make-rhythm (output-map "bpm") (output-map :sounds) rml))
 
 (defmethod read-sticks-parse-tree :play-expr
 	[[_ id] output-map] (update-rhythm (output-map (read-sticks-parse-tree id output-map)) ))
@@ -74,7 +90,7 @@
 (defmethod read-sticks-parse-tree :default 
 	[[_ & rest] output-map] (map (fn [x] (read-sticks-parse-tree x output-map)) (into [] rest)))
 	
-(defn read-sticks [s] (read-sticks-parse-tree (parse-text s) {}))
+(defn read-sticks [s] (read-sticks-parse-tree (parse-text s) {:sounds {}}))
 
 (def assign-ex (parse-text "foo $ B:|o|"))
 
