@@ -62,28 +62,28 @@
 		))
 	
 (defmulti read-rhythml-parse-tree 
-	(fn [parse-tree sounds output-map] (first parse-tree)))
+	(fn [parse-tree sounds] (first parse-tree)))
 
 (defmethod read-rhythml-parse-tree :p 
-	[[_ rhy] sounds output-map] (read-rhythml-parse-tree rhy sounds output-map))
+	[[_ rhy] sounds] (read-rhythml-parse-tree rhy sounds))
 
 (defmethod read-rhythml-parse-tree :rhy 
-	[[_  inst rhy] sounds output-map] 
+	[[_  inst rhy] sounds] 
 		(if 
 			(= rhy nil) 
-			(read-rhythml-parse-tree inst sounds output-map) 
+			(read-rhythml-parse-tree inst sounds) 
 			(apply merge-beats 
 				(into [] 
 					(concat 
-						[(read-rhythml-parse-tree inst sounds output-map)]
-						[(read-rhythml-parse-tree rhy sounds output-map)]  )))))
+						[(read-rhythml-parse-tree inst sounds)]
+						[(read-rhythml-parse-tree rhy sounds)]  )))))
 
 (defmethod read-rhythml-parse-tree :inst 
-	[[_  id bar] sounds output-map]
-	(read-rhythml-beats bar 0 (read-rhythml-parse-tree id sounds output-map) sounds))
+	[[_  id bar] sounds]
+	(read-rhythml-beats bar 0 (read-rhythml-parse-tree id sounds) sounds))
 
 (defmethod read-rhythml-parse-tree :id
-	[[_  id] sounds output-map]
+	[[_  id] sounds]
 	id)
 	
 (def rhy-ref (ref {}))
@@ -144,8 +144,7 @@
 	(let [beats 
 		(read-rhythml-parse-tree 
 			(parse-rhythm rml)
-			(merge {"B" bd, "SN" sn, "HH" ch} sounds)
-			{})]
+			(merge {"B" bd, "SN" sn, "HH" ch} sounds))]
 		{
 			:interval (/ 60000 bpm)
 			:length (count beats)
