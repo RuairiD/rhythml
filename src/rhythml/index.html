@@ -1,0 +1,33 @@
+<html>
+	<head>
+		<title>RhythML</title>
+		<script src="jquery-1.11.0.js"></script>
+		<script language="JavaScript">
+			var sock = new WebSocket("ws://127.0.0.1:8080");
+			
+			sock.onmessage = function(event)
+			{
+				receiveText(event.data);
+			}
+			
+			function sendText(txt)
+			{
+				sock.send(txt);
+			}
+			
+			function receiveText(txt)
+			{
+				document.getElementById('responseText').value = txt;
+			}
+		</script>
+	</head>
+	<body>
+		<div style="text-align: center">
+			<h1>RhythML with Sticks</h1>
+			<textarea id="editorText" rows=40 cols=60></textarea><br />
+			<input type="button" name="evalButton" value="Eval" onClick="sendText(document.getElementById('editorText').value)" /><br />
+			<h4>Nothing happens when I hit 'Eval'!</h4>
+			<p>Have you started the RhythML/Sticks server properly?</p>
+		</div>
+	</body>
+</html>
