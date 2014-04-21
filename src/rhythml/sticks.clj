@@ -79,7 +79,7 @@
 	[[_ rml] output-map] (make-rhythm (output-map "bpm") (output-map :sounds) rml))
 
 (defmethod read-sticks-parse-tree :play-expr
-	[[_ id] output-map] (update-rhythm (output-map (read-sticks-parse-tree id output-map)) ))
+	[[_ id] output-map] (let [rhy-id (read-sticks-parse-tree id output-map) rhy (output-map rhy-id)] (if (nil? rhy) (println "No playable rhythm with id " rhy-id " found.")  (do (update-rhythm  rhy) (println "Playing rhythm " rhy-id)))))
 
 (defmethod read-sticks-parse-tree :id-list 
 	[[_  id id-list] output-map] (into [] (if (= id-list nil) [(output-map (read-sticks-parse-tree id output-map))] (concat [(output-map (read-sticks-parse-tree id output-map))] (read-sticks-parse-tree id-list output-map)))))
