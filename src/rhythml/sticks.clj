@@ -9,16 +9,16 @@
 	expr : bpm-expr | sound-expr | assign-expr | play-expr;
 	
 	bpm-expr : <'bpm'> <WS> #'[0-9]+';
-	sound-expr : id <WS> <'#'> <WS> fs-id;
+	sound-expr : id <WS> <'#'> <WS> fs-id | id <WS> <'='> <WS> <'inst'> <WS> fs-id;
 	fs-id : #'[0-9]+';
 	assign-expr : id <WS> rhy-expr;
 	rhy-expr : make-expr | concat-expr | merge-expr;
-	concat-expr : <'.'> <WS> id-list;
-	merge-expr : <'+'> <WS> id-list;
-	make-expr : <'$'> <WS> rhy;
+	concat-expr : <'.'> <WS> id-list | <'='> <WS> <'concat('> <WS> id-list <WS> <')'>;
+	merge-expr : <'+'> <WS> id-list | <'='> <WS> <'merge('> <WS> id-list <WS> <')'>;
+	make-expr : <'$'> <WS> rhy | <'='> <WS> rhy;
 	rhy : #'[a-zA-Z:|\\-]*';
 	
-	play-expr : <'>'> <WS> id;
+	play-expr : <'>'> <WS> id | <'play'> <WS> id;
 	id-list : id <WS> id-list | id;
 	id : #'[a-zA-Z0-9]+';
 	
