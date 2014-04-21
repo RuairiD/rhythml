@@ -1,0 +1,32 @@
+<html>
+	<head>
+		<title>RhythML</title>
+		<!--Code Mirror-->
+		<script src="codemirror/lib/codemirror.js"></script>
+		<link rel="stylesheet" href="codemirror/lib/codemirror.css">
+		<script src="codemirror/mode/javascript/javascript.js"></script>
+		
+		<script src="jquery-1.11.0.js"></script>
+		<script src="app.js"></script>
+	</head>
+	<body>
+		<div style="text-align: center">
+			<h1>RhythML with Sticks</h1>
+			<table align="center">
+				<tr>
+					<td>
+						<textarea id="editorText" rows=24 cols=40></textarea><br />
+						<input type="button" name="evalButton" value="Play" onClick="sendText(document.getElementById('editorText').value)" />
+						<input type="button" name="stopButton" value="Stop" onClick="sendStop()" />
+					</td>
+					<td>
+						<iframe height=420px width=640px src="http://freesound.org/"></iframe>
+					</td>
+				</tr>
+			</table>
+			<p id="status"></p>
+			<h4>Nothing happens when I hit 'Play'!</h4>
+			<p>Have you started the RhythML/Sticks server properly?</p>
+		</div>
+	</body>
+</html>
