@@ -1,17 +1,6 @@
 (ns rhythml.skins
   (:require [instaparse.core :as insta])
-  (:import [rhythml MapGenerator])
   (:use [overtone.live] [overtone.inst.drum]))
-		
-(defn vector-to-array-list 
-	"Converts a Clojure vector to a Java ArrayList. If the vector contains vectors as elements, those vectors will be recursively converted to Java ArrayLists."
-	[xs]
-	(let [result (java.util.ArrayList.) len (count xs)]
-		(loop [i 0] (when (< i len)
-			(let [x (get xs i)]
-				(if (vector? x) (.add result (vector-to-array-list x)) (.add result x)))
-			(recur (inc i)))) 
-		result))
 		
 (def grammar "
 	p : rhy ;
@@ -35,7 +24,7 @@
 	([a & rest] 
 		(into [] 
 			(map 
-				(fn [x y] {:count (x :count) :instruments (into [] (concat (x :instruments) (y :instruments)))}) 
+				(fn [x y] {:count (x :count) :instruments (into [] (concat (x :instruments) (y :instruments)))})
 				a (apply merge-beats rest)))))
 	
 (defmulti read-rhythml-beats 
@@ -88,65 +77,15 @@
 	
 (def rhy-ref (ref {}))
 
-(def rhy {
-	:interval 200,
-	:length 4, 
-	:beats [
-		{:count 0, :instruments [bd ch]}
-		{:count 1, :instruments [ch]}
-		{:count 2, :instruments [ch sn]}
-		{:count 3, :instruments [ch]}]})
-
-(def rhy2 {
-	:interval 200,
-	:length 4, 
-	:beats [
-		{:count 0, :instruments [bd ch]}
-		{:count 1, :instruments [bd]}
-		{:count 2, :instruments []}
-		{:count 3, :instruments [bd]}]})
-
-(def rhy3 {
-	:interval 100,
-	:length 8,
-	:beats [
-		{:count 0, :instruments [bd ch]}
-		{:count 1, :instruments [ch]}
-		{:count 2, :instruments [ch]}
-		{:count 3, :instruments [ch]}
-		{:count 4, :instruments [ch sn]}
-		{:count 5, :instruments [ch]}
-		{:count 6, :instruments [ch]}
-		{:count 7, :instruments [ch]}
-		{:count 8, :instruments [ch]}]})
-
-(defn to-clojure-map 
-	"Convert Java HashMap to native Clojure map. Both maps must match the specification for a rhythm map."
-	[hash-map] {
-		:interval (get hash-map "interval")
-		:length (get hash-map "length")
-		:beats (into [] (map 
-			(fn [beat] {
-				:count (get beat "count") 
-				:instruments (into [] (map 
-					(fn [ins] (ns-resolve 'rhythml.skins (symbol ins))) 
-					(into [] (get beat "instruments"))))})
-			(into [] (get hash-map "beats"))))})
-
-(defn make-rhythm-old
-	"Compiles a string of RhythML code and the tempo of the rhythm and returns a map representing the rhythm. The rhythm is not played by this function but can be played back using update-rhythm."
-	[bpm rml] 
-	(to-clojure-map (MapGenerator/getMap bpm (vector-to-array-list (parse-rhythm rml)))))
-	
 (defn make-rhythm
 	"Compiles a string of RhythML code and the tempo of the rhythm and returns a map representing the rhythm. The rhythm is not played by this function but can be played back using update-rhythm."
 	[bpm sounds rml] 
 	(let [beats 
 		(read-rhythml-parse-tree 
 			(parse-rhythm rml)
-			(merge {"B" bd, "SN" sn, "HH" ch} sounds))]
+			(merge {"BD" bd, "SN" sn, "HH" ch} sounds))]
 		{
-			:interval (/ 60000 bpm)
+			:interval (if (= bpm nil) (throw (Exception. "The rhythm's tempo/BPM was not declared.")) (/ 60000 bpm))
 			:length (count beats)
 			:beats beats}))
 	
@@ -214,7 +153,12 @@
 (defn edit-rhythm
 	"Replaces drum patterns in an existing rhythm with updated patterns represented by RhythML."
 	[map1 rml] 
-	(merge-rhythm (remove-insts map1 (get-instruments (make-rhythm 1000 rml))) (make-rhythm 1000 rml)))
+	(let [map2 (make-rhythm 1000 {} rml)]
+		(merge-rhythm
+			(remove-insts
+				map1
+				(get-instruments map2)) 
+			map2)))
 	
 (defn edit-live-rhythm
 	"Replaces drum patterns in the currently playing rhythm with updated patterns represented by RhythML."
